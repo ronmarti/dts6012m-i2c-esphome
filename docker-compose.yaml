@@ -1,0 +1,26 @@
+services:
+  esphome:
+    image: esphome/esphome:2025.9
+    environment:
+      - ESPHOME_DASHBOARD_USE_PING=true
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./secrets.yaml:/config/secrets.yaml:ro
+      - ./esp32.yaml:/config/esp32.yaml:rw
+      - ./components:/config/custom_components:rw
+    ports:
+      # Host:Container ESPHome Dashboard port - adjust left side as needed:
+      - 6052:6052
+    restart: unless-stopped
+    privileged: true  # For USB device access
+    networks:
+      - esp-home-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 10m
+        max-file: "2"
+  
+networks:
+  esp-home-network:
+    driver: bridge
