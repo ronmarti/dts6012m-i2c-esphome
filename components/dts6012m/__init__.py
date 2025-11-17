@@ -10,9 +10,19 @@ DTS = dts_ns.class_("DTS6012MComponent", cg.PollingComponent)
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(DTS),
-        cv.Optional("update_interval", default="0.5s"): cv.positive_time_period_milliseconds,
-        cv.Optional("retries", default=3): cv.int_,
-        cv.Required("distance"): sensor.sensor_schema(unit_of_measurement="m"),
+        cv.Optional("update_interval",
+                    description="Interval at which the sensor polls the I²C sensor, e.g., '500ms', '1s', '5min'",
+                    default="0.5s"): cv.positive_time_period_milliseconds,
+        cv.Optional("retries",
+                    description="Number of retries after a failed I²C read",
+                    default=3): cv.int_,
+        cv.Required("distance",
+                    description="Sensor that will publish the measured distance in meters"): sensor.sensor_schema(
+                        unit_of_measurement="m",
+                        accuracy_decimals=3,
+                        device_class="distance",
+                        state_class="measurement",
+                    ),
     }
 )
 
