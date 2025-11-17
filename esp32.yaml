@@ -1,0 +1,54 @@
+esphome:
+  name: dts6012m-node
+
+esp32:
+  board: denky32
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+  level: DEBUG
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+- platform: esphome
+  password: !secret ota_password
+
+wifi:
+  use_address: !secret ip_address
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: True
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "LiDAR_Fallback"
+    password: !secret wifi_fallback_outside
+    # ap_timeout: 1min
+
+i2c:
+  sda: 21
+  scl: 18
+  scan: false
+  # optional: lower clock if unstable
+  frequency: 10kHz
+
+captive_portal:
+
+external_components:
+  # - source: github://ronmarti/dts6012m-i2c-esphome@v0.1.1
+    # components: [dts6012m]
+  - source: ./custom_components/dts6012m
+
+dts6012m:
+  update_interval: 500ms
+  retries: 3
+  distance:
+    name: "DTS6012M Distance"
+
+sensor:

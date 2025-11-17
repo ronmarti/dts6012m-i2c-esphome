@@ -46,3 +46,6 @@
 
 esp_home/
 *.pyc
+
+/.esphome/
+/secrets.yaml

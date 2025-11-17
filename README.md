@@ -36,19 +36,6 @@ This library targets only the I2C interface of the DTS6012M sensor. Make sure to
 ## Possible Gotchas
 The default I2C address of the DTS6012M sensor is fixed to `0x51`. That is defined in the DTS6012M.h file. Modify, if needed.
 
-# Troubleshooting Problems during Building
-Sometimes the local build cache becomes corrupted, especially when you messed up with some external components. To fix this, you can clear the build cache by deleting the `.esphome/build` folder:
-```shell
-rm -rf /config/.esphome/build
-```
-Then try to build again.
-
-Sometimes, esphome downloads and cache the external components and until version is changed, it won't download again. To force re-download of the external components, you can delete the `.esphome/downloads` folder:
-```shell
-rm -rf /config/.esphome/external_components
-```
-Then try to build again.
-
 # Example ESPHome Configuration
 This worked for me. Adjust pins and settings as needed.
 ```yaml
@@ -109,3 +96,32 @@ sensor:
 ```
 
 The important part is the `external_components` section, which pulls in the custom DTS6012M component from this repository. Adjust the version tag as needed.
+
+# Development in Container: Docker Compose
+For development purposes, you can use the following `docker-compose.yaml` to set up an ESPHome environment with access to USB devices for flashing and monitoring your ESP32 boards.
+
+For `secrets.yaml`, create a file in the project-root directory with your WiFi and OTA credentials, it will be mounted into the container.
+
+Example of `secrets.yaml`:
+```yaml
+wifi_ssid: "my_wifi_ssid"
+wifi_password: "my_wifi_password1234567"
+```
+
+## Tips for Deploying Config to Device
+Use Chromium-based browser (Edge, Chrome, Brave, etc.) to access the ESPHome dashboard at `http://localhost:6052` (adjust port as needed). Chromium have serial monitoring built-in, I suppose that's why it is needed for the first flash. Then you can use any browser for OTA updates.
+
+For the first upload wiht wifi credentials to enable the OTA updates, you need to connect the ESP32 via USB to your computer and select the appropriate serial port in the ESPHome dashboard. If you have issues with accessing the serial port from within the container, you can bypass by downloading the compiled binary from the container's ESPHome dashboard (Install > Manual Download > Factory Format > Open ESPHome Web) and flashing it using online-loaded esphome dashboard.
+
+## Troubleshooting Problems during Building
+Sometimes the local build cache becomes corrupted, especially when you messed up with some external components. To fix this, you can clear the build cache by deleting the `.esphome/build` folder:
+```shell
+rm -rf /config/.esphome/build
+```
+Then try to build again.
+
+Sometimes, esphome downloads and cache the external components and until version is changed, it won't download again. To force re-download of the external components, you can delete the `.esphome/downloads` folder:
+```shell
+rm -rf /config/.esphome/external_components
+```
+Then try to build again.
