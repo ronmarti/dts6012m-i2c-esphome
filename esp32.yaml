@@ -1,5 +1,13 @@
 esphome:
   name: dts6012m-node
+  on_boot:
+    priority: -100
+    then:
+      - if:
+          condition:
+            lambda: return id(prevent_deep_sleep);
+          then:
+            - deep_sleep.prevent: deep_sleep_control
 
 esp32:
   board: denky32
@@ -40,6 +48,17 @@ i2c:
 
 captive_portal:
 
+globals:
+  - id: prevent_deep_sleep
+    type: bool
+    restore_value: yes
+    initial_value: 'false'
+
+deep_sleep:
+  id: deep_sleep_control
+  run_duration: 30s
+  sleep_duration: 30s
+
 external_components:
   # - source: github://ronmarti/dts6012m-i2c-esphome@v0.1.1
     # components: [dts6012m]
@@ -48,8 +67,25 @@ external_components:
 dts6012m:
   update_interval: 5000ms
   retries: 3
-  wakeup_time: 20ms
   distance:
     name: "DTS6012M Distance"
+
+switch:
+  - platform: template
+    name: "Prevent Deep Sleep"
+    id: prevent_deep_sleep_switch
+    entity_category: config
+    optimistic: true
+    lambda: return id(prevent_deep_sleep);
+    turn_on_action:
+      - globals.set:
+          id: prevent_deep_sleep
+          value: 'true'
+      - deep_sleep.prevent: deep_sleep_control
+    turn_off_action:
+      - globals.set:
+          id: prevent_deep_sleep
+          value: 'false'
+      - deep_sleep.allow: deep_sleep_control
 
 sensor:

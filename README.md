@@ -41,6 +41,14 @@ This worked for me. Adjust pins and settings as needed.
 ```yaml
 esphome:
   name: dts6012m-node
+  on_boot:
+    priority: -100
+    then:
+      - if:
+          condition:
+            lambda: return id(prevent_deep_sleep);
+          then:
+            - deep_sleep.prevent: deep_sleep_control
 
 esp32:
   board: denky32
@@ -81,6 +89,12 @@ i2c:
 
 captive_portal:
 
+globals:
+  - id: prevent_deep_sleep
+    type: bool
+    restore_value: yes
+    initial_value: 'false'
+
 external_components:
   - source: github://ronmarti/dts6012m-i2c-esphome@v0.1
     components: [dts6012m]
@@ -88,25 +102,96 @@ external_components:
 dts6012m:
   update_interval: 500ms
   retries: 3
-  wakeup_time: 20ms
   distance:
     name: "DTS6012M Distance"
 
 sensor:
 
+deep_sleep:
+  id: deep_sleep_control
+  run_duration: 30s
+  sleep_duration: 30s
+
+switch:
+  - platform: template
+    name: "Prevent Deep Sleep"
+    id: prevent_deep_sleep_switch
+    entity_category: config
+    optimistic: true
+    lambda: return id(prevent_deep_sleep);
+    turn_on_action:
+      - globals.set:
+          id: prevent_deep_sleep
+          value: 'true'
+      - deep_sleep.prevent: deep_sleep_control
+    turn_off_action:
+      - globals.set:
+          id: prevent_deep_sleep
+          value: 'false'
+      - deep_sleep.allow: deep_sleep_control
+
 ```
 
 The important part is the `external_components` section, which pulls in the custom DTS6012M component from this repository. Adjust the version tag as needed.
 
+## Periodic Node Deep Sleep
+If you want the whole ESP32 node to wake up, measure, report, and then power down for a while, use ESPHome's `deep_sleep` component:
+
+- `run_duration`
+  How long the node stays awake after boot. This must be long enough for Wi-Fi connection, API/OTA startup, and one or more sensor updates.
+- `sleep_duration`
+  How long the node remains in deep sleep before waking again.
+
+Example:
+
+```yaml
+deep_sleep:
+  run_duration: 10s
+  sleep_duration: 30s
+```
+
+Practical notes:
+
+- While the node is asleep, it is offline. Home Assistant will not be able to poll it.
+- OTA updates only work during the `run_duration` wake window.
+- Your `dts6012m.update_interval` should be shorter than `run_duration`, otherwise the node may go back to sleep before publishing a measurement.
+- For battery-powered operation, deep sleep at the node level is usually much more effective than only trying to idle the sensor.
+- The `Prevent Deep Sleep` switch is exposed to Home Assistant and, when turned on, keeps the node awake until you turn it off again.
+- The switch state is restored after reboot, so if you enabled it for maintenance or debugging, the node will remain awake on the next boot too.
+- A `run_duration` of `10s` can be too short once Wi-Fi association and encrypted API authentication are included. `30s` is a safer starting point.
+- Home Assistant normally keeps the ESPHome API connection open while the node is awake, so API connectivity should not be used as the condition for blocking deep sleep. Only the explicit `Prevent Deep Sleep` switch does that here.
+
 ## Power Saving Behavior
-The component now keeps the sensor laser disabled between measurements:
+By default, the component keeps the sensor in continuous ranging mode because it is the most reliable configuration for fresh measurements.
 
-- At each `update_interval`, it enables the laser.
-- It waits for `wakeup_time` (default `20ms`) so the measurement is stable.
-- It performs the distance read with configured retries.
-- It disables the laser again immediately afterward.
+In continuous mode, the component also re-sends the start command at each update cycle to prevent stale latched readings on sensor variants that require re-arming.
 
-This significantly reduces average sensor power consumption for battery-powered nodes.
+Optional low-power settings are available:
+
+- `sleep_between_updates: true`
+  Uses the sensor's internal standby by stopping the laser between updates and starting it again before the next read.
+- `wakeup_time: 20ms`
+  Delay after leaving standby before the sensor is read.
+- `power_pin:`
+  Recommended for battery-powered builds. Use a GPIO-controlled transistor or MOSFET to switch the sensor's `3V3_LASER` supply.
+- `powerup_time: 250ms`
+  Delay after turning the hardware power pin on before initializing and reading the sensor.
+
+Example low-power configuration:
+
+```yaml
+dts6012m:
+  update_interval: 5s
+  retries: 3
+  power_pin:
+    number: GPIO23
+  powerup_time: 250ms
+  wakeup_time: 20ms
+  distance:
+    name: "DTS6012M Distance"
+```
+
+If you enable `sleep_between_updates` without a hardware `power_pin`, some sensor variants may continue returning a stale latched measurement after wake-up. If that happens, use continuous mode or hardware power gating instead.
 
 # Development in Container: Docker Compose
 For development purposes, you can use the following `docker-compose.yaml` to set up an ESPHome environment with access to USB devices for flashing and monitoring your ESP32 boards.
