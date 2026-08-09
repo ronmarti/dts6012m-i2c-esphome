@@ -14,6 +14,8 @@ CONFIG_SCHEMA = cv.Schema(
                     default="0.5s"): cv.positive_time_period_milliseconds,
         cv.Optional("retries",
                     default=3): cv.int_,
+        cv.Optional("wakeup_time",
+                    default="20ms"): cv.positive_time_period_milliseconds,
         cv.Required("distance"): sensor.sensor_schema(
                         unit_of_measurement="m",
                         accuracy_decimals=3,
@@ -27,7 +29,8 @@ async def to_code(config):
     var = cg.new_Pvariable(
         config[cv.GenerateID()],
         config["update_interval"],
-        config["retries"]
+        config["retries"],
+        config["wakeup_time"]
     )
 
     await cg.register_component(var, config)

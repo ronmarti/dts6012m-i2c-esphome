@@ -46,8 +46,9 @@ external_components:
   - source: ./custom_components/dts6012m
 
 dts6012m:
-  update_interval: 500ms
+  update_interval: 5000ms
   retries: 3
+  wakeup_time: 20ms
   distance:
     name: "DTS6012M Distance"
 

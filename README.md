@@ -88,6 +88,7 @@ external_components:
 dts6012m:
   update_interval: 500ms
   retries: 3
+  wakeup_time: 20ms
   distance:
     name: "DTS6012M Distance"
 
@@ -96,6 +97,16 @@ sensor:
 ```
 
 The important part is the `external_components` section, which pulls in the custom DTS6012M component from this repository. Adjust the version tag as needed.
+
+## Power Saving Behavior
+The component now keeps the sensor laser disabled between measurements:
+
+- At each `update_interval`, it enables the laser.
+- It waits for `wakeup_time` (default `20ms`) so the measurement is stable.
+- It performs the distance read with configured retries.
+- It disables the laser again immediately afterward.
+
+This significantly reduces average sensor power consumption for battery-powered nodes.
 
 # Development in Container: Docker Compose
 For development purposes, you can use the following `docker-compose.yaml` to set up an ESPHome environment with access to USB devices for flashing and monitoring your ESP32 boards.
