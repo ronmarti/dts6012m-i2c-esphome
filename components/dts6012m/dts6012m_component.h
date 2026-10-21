@@ -21,7 +21,6 @@ class DTS6012MComponent : public PollingComponent {
   void set_power_pin(GPIOPin *pin) { power_pin_ = pin; }
 
   void setup() override {
-    Wire.begin();
     if (power_pin_ != nullptr) {
       power_pin_->setup();
       power_pin_->digital_write(false);
@@ -66,11 +65,10 @@ class DTS6012MComponent : public PollingComponent {
         delay(powerup_time_ms_);
       DTS6012M_Init(&sensor_);
       DTS6012M_StartLaser();
-    } else if (sleep_between_updates_) {
-      DTS6012M_StartLaser();
     } else {
-      // Some DTS6012M units keep returning a latched value unless ranging is
-      // explicitly re-armed before each read cycle.
+      // Re-initialize the sensor to ensure it's in a known state, 
+      // especially after ESP32 wake-up from deep sleep.
+      DTS6012M_Init(&sensor_);
       DTS6012M_StartLaser();
     }
 

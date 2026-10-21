@@ -52,7 +52,7 @@ globals:
   - id: prevent_deep_sleep
     type: bool
     restore_value: yes
-    initial_value: 'false'
+    initial_value: 'true'
 
 deep_sleep:
   id: deep_sleep_control
